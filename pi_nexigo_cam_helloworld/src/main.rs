@@ -5,6 +5,8 @@ use v4l::video::Capture;
 use image::{RgbImage, Rgb};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let 
+
     let path = "/dev/video0";
     let mut dev = Device::with_path(path)?;
 
@@ -23,10 +25,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("YUYV Frame captured! Size: {} bytes", data.len());
 
-    // --- NEW CONVERSION LOGIC ---
     let mut rgb_data = Vec::with_capacity((fmt.width * fmt.height * 3) as usize);
 
-    // YUYV sends 2 pixels in 4 bytes: [Y1, U, Y2, V]
+    // Uses YUVY (special YUV)
+    // YUYV sends 2 pixels in 4 bytes: [Y0, U, Y1, V]
+    // R = Y + 1.402 * (V-128)
+    // G = Y - 0344136 * (U - 128) - 0.714136 * (V - 128)
+    // B = Y + 1.772 * (U - 128)
+    // [Luminance1, Chromiance part1, Luminance1, Chromiance part2]
+    //
     for chunk in data.chunks_exact(4) {
         let y1 = chunk[0] as f32;
         let u  = chunk[1] as f32 - 128.0;
