@@ -10,7 +10,7 @@ pub struct Camera {
 
 
 impl Camera {
-    pub fn new(self, width: u32, height: u32) -> Self {
+    pub fn new(width: u32, height: u32) -> Self {
         Camera {
             width: width,
             height: height
@@ -23,6 +23,7 @@ impl Camera {
             .expect("failed to read the format on the camera");
         fmt.width = self.width;
         fmt.height = self.height;
+        // TODO: Convert to a MJPEG for decreased transmission size?
         fmt.fourcc = v4l::FourCC::new(b"YUYV");
         
         // Important: capture the actual format the camera accepted
