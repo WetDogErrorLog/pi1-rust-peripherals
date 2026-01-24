@@ -1,8 +1,8 @@
 use image::{RgbImage};
 use std::fmt;
 use serde::{Serialize, Deserialize};
-use reqwest::blocking::multipart;
-use ax_multipart::Multipart;
+use reqwest::blocking::Client;
+use chrono::Local;
 
 // Put the data into a struct so it can be serialized and send.
 // Less byte usage than sending the multipart with various headers.
@@ -12,6 +12,7 @@ pub struct CameraPacket {
     pub height: u32,
     pub format: ImageFormat,
     pub data: Vec<u8>,
+    pub file_name: String,
 }
 
 // Enum to represent the supported image types.
@@ -71,6 +72,10 @@ pub fn yuyv_to_rgb(height: u32, width: u32, yuyv_data: &[u8]) -> Result<RgbImage
         .ok_or(ImageUnpackError::InvalidData)
 }
 
+pub fn mjpeg_to_rgb(height: u32, width: u32, mjpeg_data: &[u8]) -> Result<RgbImage, ImageUnpackError> {
+    todo!("add support for jpeg conversion");
+}
+
 // send the image to the destination service.
 pub fn send_image(
     width: u32,
@@ -79,40 +84,46 @@ pub fn send_image(
     raw_bytes: Vec<u8>,
     file_name: String,
     // 'http://<server>:port'
-    service_addr: String,
+    mut service_addr: String,
 ) {
-    client = reqwest::blocking::Client::new();
+    let client = Client::new();
 
     let packet = CameraPacket {
-        width=width,
-        height=height,
-        format=format,
-        data=raw_bytes,
-    }
-    let url = service_addr.push("/upload_image")
+        width: width,
+        height: height,
+        format: format,
+        data: raw_bytes,
+        file_name: file_name,
+    };
+    service_addr.push_str("/upload_image");
 
     client.post("{service_addr}/upload_image")
-        .body(form)
+        .json(&packet)
         .send()
         .unwrap();
 }
 
 // Convert the bytes into rgb data and saves.
 // dest_dir should not include a trailing slash.
-pub fn handle_image_post(body: Bytes, dest_dir: &str) {
+// TODO: consider using Bytes<R> instead.
+pub fn handle_image_post(body: Vec<u8>, dest_dir: &str) {
     let packet: CameraPacket = bincode::deserialize(&body).unwrap();
-    match packet.format {
-        ImageFormat::YUYV => rgb_data = yuyv_to_rgb(
-            height: packet.height,
-            width: packet.width,
-            yuyv_data: &packet.data,
-        );
-        ImageFormat::MJPEG => rgb_data = mjpeg_to_rgb(
-            height: packet.height,
-            width: packet.width,
-            yuyv_data: &packet.data,
-        );
+    let rgb_data = match packet.format {
+        ImageFormat::YUYV => yuyv_to_rgb(
+            packet.height,
+            packet.width,
+            &packet.data,
+        ),
+        ImageFormat::MJPEG => mjpeg_to_rgb(
+            packet.height,
+            packet.width,
+            &packet.data,
+        ),
     }
-    let path = format!("{dest_dir}/{name}_{timestamp}.png");
-    rgb_data.save(path);
+    .expect("failed to convert image for {file_root} of type {packet.format}");
+    let timestamp = Local::now().format("%Y-%m-%d_%H-%M").to_string();
+    let file_root: &str = &packet.file_name;
+    let path = format!("{dest_dir}/{file_root}_{timestamp}.png");
+    let result = rgb_data.save(path);
+    result.expect("failed to save the rgb image for {file_root}")
 }
