@@ -20,7 +20,6 @@ pub enum ImageFormat {
     YUYV,
     MJPEG,
 }
-
 // Error enum for image conversions
 #[derive(Debug)]
 pub enum ImageUnpackError {
