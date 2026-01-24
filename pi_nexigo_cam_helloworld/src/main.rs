@@ -1,12 +1,9 @@
 use v4l::buffer::Type;
-use v4l::io::traits::CaptureStream;
 use v4l::prelude::*;
 use v4l::video::Capture;
-use image::{RgbImage, Rgb};
+use image::RgbImage;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let 
-
     let path = "/dev/video0";
     let mut dev = Device::with_path(path)?;
 
