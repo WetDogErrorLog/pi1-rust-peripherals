@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 nexigo_lib = { path = "../nexigo_lib" }
+image_handling = { path = "../image_handling" }
