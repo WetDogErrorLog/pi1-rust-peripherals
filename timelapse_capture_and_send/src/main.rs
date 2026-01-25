@@ -19,6 +19,6 @@ fn main() {
        CURRENT_FORMAT,
        yuyv_shot,
        String::from("test_shot"),
-       String::from("<address>"),
+       String::from("192.168.4.22:3000"),
     );
 }

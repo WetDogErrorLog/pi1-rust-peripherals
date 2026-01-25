@@ -86,28 +86,26 @@ pub fn send_image(
     // 'http://<server>:port'
     mut service_addr: String,
 ) {
+    println!("running send_image");
     let client = Client::new();
 
     let packet = CameraPacket {
-        width: width,
-        height: height,
-        format: format,
+        width,
+        height,
+        format,
         data: raw_bytes,
-        file_name: file_name,
+        file_name,
     };
-    service_addr.push_str("/upload_image");
-
-    client.post("{service_addr}/upload_image")
+    let target_url = format!("http://{}/upload_image", service_addr);
+    client.post(target_url)
         .json(&packet)
         .send()
-        .unwrap();
+        .expect("Failed to upload image to server");
 }
 
 // Convert the bytes into rgb data and saves.
 // dest_dir should not include a trailing slash.
-// TODO: consider using Bytes<R> instead.
-pub fn handle_image_post(body: Vec<u8>, dest_dir: &str) {
-    let packet: CameraPacket = bincode::deserialize(&body).unwrap();
+pub fn handle_image_post(packet: CameraPacket, dest_dir: &str) -> std::io::Result<()> {
     let rgb_data = match packet.format {
         ImageFormat::YUYV => yuyv_to_rgb(
             packet.height,
@@ -125,5 +123,6 @@ pub fn handle_image_post(body: Vec<u8>, dest_dir: &str) {
     let file_root: &str = &packet.file_name;
     let path = format!("{dest_dir}/{file_root}_{timestamp}.png");
     let result = rgb_data.save(path);
-    result.expect("failed to save the rgb image for {file_root}")
+    result.expect("failed to save the rgb image for {file_root}");
+    Ok(())
 }
