@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Json, State},
+    extract::{Json, State, DefaultBodyLimit},
     routing::post,
     http::StatusCode,
     response::IntoResponse,
@@ -18,18 +18,20 @@ struct AppState{
 #[tokio::main]
 async fn main() {
     let shared_state = Arc::new(AppState {
-        storage_dir: "./timlapse_data".to_string(),
+        storage_dir: "/home/shared_space/timlapse_data".to_string(),
     });
 
     std::fs::create_dir_all(&shared_state.storage_dir).unwrap();
 
+    // TODO: When we swap away from YUYV we can reduce body limit to default.
     let app = Router::new()
-        .route("./upload_image", post(upload_handler))
+        .route("/upload_image", post(upload_handler))
+        .layer(DefaultBodyLimit::max(15 * 1024 * 1024))
         .with_state(shared_state);
 
     let addr = SocketAddr::from(([0,0,0,0], 3000));
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    
+    println!("Listening..."); 
     axum::serve(listener, app).await.unwrap();
 }
 
