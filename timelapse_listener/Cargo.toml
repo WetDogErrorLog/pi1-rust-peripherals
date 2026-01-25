@@ -7,6 +7,5 @@ edition = "2024"
 axum = "0.7"
 tokio = { version = "1.0", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
-bincode = "1.3"
-image = "0.24"
-decompress_image = { path = "../decompress_image" }
+
+image_handling = { path = "../image_handling" }
