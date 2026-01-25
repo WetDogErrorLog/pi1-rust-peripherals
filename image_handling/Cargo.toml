@@ -1,5 +1,5 @@
 [package]
-name = "decompress_image"
+name = "image_handling"
 version = "0.1.0"
 edition = "2024"
 
