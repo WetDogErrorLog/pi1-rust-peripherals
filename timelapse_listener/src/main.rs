@@ -20,14 +20,7 @@ async fn main() {
     let shared_state = Arc::new(AppState {
         storage_dir: "/home/shared_space/timelapse_data".to_string(),
     });
-
-    match std::fs::create_dir_all(&shared_state.storage_dir) {
-        Ok(_) => println!("made dir if needed"),
-        Err(e) => {
-            println!("errored with {e}");
-        }
-    };
-
+    
     // TODO: When we swap away from YUYV we can reduce body limit to default.
     let app = Router::new()
         .route("/upload_image", post(upload_handler))
@@ -45,10 +38,7 @@ async fn upload_handler(
     State(state): State<Arc<AppState>>,
     Json(packet): Json<CameraPacket>,
 ) -> impl IntoResponse {
-    // TODO: since the json is deserialized automatically,
-    // the method can bechanged to take the packet object.
     println!("Recieved image {}, {}", packet.project_folder, packet.file_name_root);
-    // let binary_packet = bincode::serialize(&packet).unwrap();
     match handle_image_post(packet, &state.storage_dir){
         Ok(_) => {
             println!("saved");
