@@ -1,5 +1,5 @@
 use image::{RgbImage};
-use std::fmt;
+use std::{fmt, fs};
 use serde::{Serialize, Deserialize};
 use reqwest::blocking::Client;
 use chrono::Local;
@@ -12,8 +12,28 @@ pub struct CameraPacket {
     pub height: u32,
     pub format: ImageFormat,
     pub data: Vec<u8>,
-    pub file_name: String,
+    pub file_name_root: String,
+    pub project_folder: String,
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct TimelapseSessionConfig {
+    pub service_addr: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct TimelapseLoopConfig {
+    pub device_path: String,
+    pub width: u32,
+    pub height: u32,
+    pub file_name_root: String,
+    pub project_folder: String,
+    pub image_format: ImageFormat,
+    pub interval_minutes: u32,
+    // pub camera_path
+    // pub camera_method???
+}
+
 
 // Enum to represent the supported image types.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
@@ -39,6 +59,30 @@ impl fmt::Display for ImageUnpackError {
 }
 
 impl std::error::Error for ImageUnpackError {}
+
+// send the image to the destination service.
+pub fn send_image(
+    service_addr: String,
+    raw_bytes: Vec<u8>,
+    loop_config: TimelapseLoopConfig,
+) {
+    println!("running send_image");
+    let client = Client::new();
+
+    let packet = CameraPacket {
+        width: loop_config.width,
+        height: loop_config.height,
+        format: loop_config.image_format,
+        data: raw_bytes,
+        file_name_root: String::from(loop_config.file_name_root),
+        project_folder: String::from(loop_config.project_folder),
+    };
+    let target_url = format!("http://{}/upload_image", service_addr);
+    client.post(target_url)
+        .json(&packet)
+        .send()
+        .expect("Failed to upload image to server");
+}
 
 // Convert YUVU to RGB. 
 pub fn yuyv_to_rgb(height: u32, width: u32, yuyv_data: &[u8]) -> Result<RgbImage, ImageUnpackError> {
@@ -76,33 +120,6 @@ pub fn mjpeg_to_rgb(height: u32, width: u32, mjpeg_data: &[u8]) -> Result<RgbIma
     todo!("add support for jpeg conversion");
 }
 
-// send the image to the destination service.
-pub fn send_image(
-    width: u32,
-    height: u32,
-    format: ImageFormat,
-    raw_bytes: Vec<u8>,
-    file_name: String,
-    // 'http://<server>:port'
-    mut service_addr: String,
-) {
-    println!("running send_image");
-    let client = Client::new();
-
-    let packet = CameraPacket {
-        width,
-        height,
-        format,
-        data: raw_bytes,
-        file_name,
-    };
-    let target_url = format!("http://{}/upload_image", service_addr);
-    client.post(target_url)
-        .json(&packet)
-        .send()
-        .expect("Failed to upload image to server");
-}
-
 // Convert the bytes into rgb data and saves.
 // dest_dir should not include a trailing slash.
 pub fn handle_image_post(packet: CameraPacket, dest_dir: &str) -> std::io::Result<()> {
@@ -120,9 +137,14 @@ pub fn handle_image_post(packet: CameraPacket, dest_dir: &str) -> std::io::Resul
     }
     .expect("failed to convert image for {file_root} of type {packet.format}");
     let timestamp = Local::now().format("%Y-%m-%d_%H-%M").to_string();
-    let file_root: &str = &packet.file_name;
-    let path = format!("{dest_dir}/{file_root}_{timestamp}.png");
+    let file_root: &str = &packet.file_name_root;
+    let project_folder: &str = &packet.project_folder;
+    let path_to_project: &str = &format!("{dest_dir}/{project_folder}");
+    println!("creating path_to_project: {path_to_project}");
+    fs::create_dir_all(path_to_project);
+    let path = format!("{path_to_project}/{file_root}_{timestamp}.png");
     let result = rgb_data.save(path);
     result.expect("failed to save the rgb image for {file_root}");
     Ok(())
 }
+

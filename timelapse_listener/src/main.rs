@@ -18,10 +18,15 @@ struct AppState{
 #[tokio::main]
 async fn main() {
     let shared_state = Arc::new(AppState {
-        storage_dir: "/home/shared_space/timlapse_data".to_string(),
+        storage_dir: "/home/shared_space/timelapse_data".to_string(),
     });
 
-    std::fs::create_dir_all(&shared_state.storage_dir).unwrap();
+    match std::fs::create_dir_all(&shared_state.storage_dir) {
+        Ok(_) => println!("made dir if needed"),
+        Err(e) => {
+            println!("errored with {e}");
+        }
+    };
 
     // TODO: When we swap away from YUYV we can reduce body limit to default.
     let app = Router::new()
@@ -42,7 +47,7 @@ async fn upload_handler(
 ) -> impl IntoResponse {
     // TODO: since the json is deserialized automatically,
     // the method can bechanged to take the packet object.
-    println!("Recieved image {}", packet.file_name);
+    println!("Recieved image {}, {}", packet.project_folder, packet.file_name_root);
     // let binary_packet = bincode::serialize(&packet).unwrap();
     match handle_image_post(packet, &state.storage_dir){
         Ok(_) => {
