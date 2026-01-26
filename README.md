@@ -6,3 +6,15 @@ cross build --target arm-unknown-linux-gnueabihf --release
 
 # Monitoring TCP
 sudo tcpdump -i any port 3000
+
+# TODO:
+- [ ] Add timelapse support to leave camera running
+- [ ] Add rgb support
+- [ ] Add second camera support with async requests
+- [ ] Add logging and monitoring
+- [ ] Add a config template to fill out for quick project setups
+- [ ] Convert project to a rust workspace instead of all separate projects.
+
+An ideal config will list -
+- One destination server with folder name
+- One or more (camera_path, file_prefix, capture_rate) tuples.
