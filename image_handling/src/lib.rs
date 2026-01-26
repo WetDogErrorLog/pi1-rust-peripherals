@@ -3,6 +3,7 @@ use std::{fmt, fs};
 use serde::{Serialize, Deserialize};
 use reqwest::blocking::Client;
 use chrono::Local;
+use tokio::time::{self, Duration};
 
 // Put the data into a struct so it can be serialized and send.
 // Less byte usage than sending the multipart with various headers.
@@ -21,7 +22,7 @@ pub struct TimelapseSessionConfig {
     pub service_addr: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TimelapseLoopConfig {
     pub device_path: String,
     pub width: u32,
@@ -82,6 +83,29 @@ pub fn send_image(
         .json(&packet)
         .send()
         .expect("Failed to upload image to server");
+}
+
+pub async fn camera_timelapse_loop(
+    service_addr: String,
+    loop_config: TimelapseLoopConfig,
+) {
+    let camera = nexigo_lib::Camera::new(
+        loop_config.width,
+        loop_config.height,
+    );
+    let mut interval = time::interval(Duration::from_secs((60 * loop_config.interval_minutes).into()));
+    loop {
+        interval.tick().await;
+        let yuyv_result = camera.take_picture(loop_config.device_path.clone());
+        let yuyv_shot = yuyv_result.expect("Failed to take picture");
+        println!("Hello, world! We have a picture");
+        send_image(
+            service_addr.clone(),
+            yuyv_shot,
+            loop_config.clone(),
+        );
+    }
+
 }
 
 // Convert YUVU to RGB. 

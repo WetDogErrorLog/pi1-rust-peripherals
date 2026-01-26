@@ -1,10 +1,9 @@
 use nexigo_lib;
 use image_handling;
 
-const CURRENT_FORMAT: image_handling::ImageFormat = image_handling::ImageFormat::YUYV;
-
 // This edition just captures a single image,sends it, then exits.
-fn main() {
+#[tokio::main]
+async fn main() {
     let example_session_config = image_handling::TimelapseSessionConfig{
         service_addr: String::from("192.168.4.22:3000"),
     };
@@ -17,16 +16,8 @@ fn main() {
         image_format: image_handling::ImageFormat::YUYV,
         interval_minutes: 1,
     };
-    let camera = nexigo_lib::Camera::new(
-        example_loop_config.width,
-        example_loop_config.height,
-    );
-    let yuyv_result = camera.take_picture(example_loop_config.device_path.clone());
-    let yuyv_shot = yuyv_result.expect("Failed to take picture");
-    println!("Hello, world! We have a picture");
-    image_handling::send_image(
-       example_session_config.service_addr,
-       yuyv_shot,
-       example_loop_config,
-    );
+    image_handling::camera_timelapse_loop(
+        example_session_config.service_addr,
+        example_loop_config,
+    ).await;
 }

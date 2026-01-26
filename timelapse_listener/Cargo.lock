@@ -868,8 +868,10 @@ dependencies = [
  "bincode",
  "chrono",
  "image",
+ "nexigo_lib",
  "reqwest",
  "serde",
+ "tokio",
  "v4l",
 ]
 
@@ -1066,6 +1068,14 @@ dependencies = [
  "libc",
  "wasi",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "nexigo_lib"
+version = "0.1.0"
+dependencies = [
+ "image",
+ "v4l",
 ]
 
 [[package]]
