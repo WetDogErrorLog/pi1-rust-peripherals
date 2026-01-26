@@ -16,6 +16,8 @@ async fn main() {
         image_format: image_handling::ImageFormat::YUYV,
         interval_minutes: 1,
     };
+    // TODO: when I test the configs, I can run two loops at different resolutions,
+    // for an easy test case without adding more cameras.
     image_handling::camera_timelapse_loop(
         example_session_config.service_addr,
         example_loop_config,

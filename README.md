@@ -8,7 +8,7 @@ cross build --target arm-unknown-linux-gnueabihf --release
 sudo tcpdump -i any port 3000
 
 # TODO:
-- [ ] Add timelapse support to leave camera running
+- [x] Add timelapse support to leave camera running
 - [ ] Add jpeg support
 - [ ] Add second camera support with async requests
 - [ ] Add logging and monitoring

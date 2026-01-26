@@ -1,0 +1,16 @@
+{
+  "session": {
+    "service_addr": "192.168.4.22:3000"
+  },
+  "loops": [
+    {
+      "device_path": "/dev/video0",
+      "width": 1280,
+      "height": 720,
+      "project_folder": "/home/shared_space/timelapse_data",
+      "file_name_root": "basic_loop",
+      "image_format": "YUYV",
+      "interval_minutes": 1
+    }
+  ]
+}
