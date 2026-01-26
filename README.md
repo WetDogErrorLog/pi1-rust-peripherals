@@ -9,7 +9,7 @@ sudo tcpdump -i any port 3000
 
 # TODO:
 - [ ] Add timelapse support to leave camera running
-- [ ] Add rgb support
+- [ ] Add jpeg support
 - [ ] Add second camera support with async requests
 - [ ] Add logging and monitoring
 - [ ] Add a config template to fill out for quick project setups
