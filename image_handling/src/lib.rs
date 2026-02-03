@@ -20,6 +20,7 @@ pub struct CameraPacket {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TimelapseSessionConfig {
     pub service_addr: String,
+    pub loops: Vec<TimelapseLoopConfig>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

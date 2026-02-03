@@ -1,0 +1,23 @@
+{
+  "service_addr": "192.168.4.22:3000",
+  "loops": [
+    {
+      "device_path": "/dev/logitech_webcam",
+      "width": 1280,
+      "height": 720,
+      "project_folder": "config_test",
+      "file_name_root": "basic_loop",
+      "image_format": "YUYV",
+      "interval_minutes": 1
+    },
+    {
+      "device_path": "/dev/nexigo_webcam",
+      "width": 1280,
+      "height": 720,
+      "project_folder": "config_test",
+      "file_name_root": "second_angle",
+      "image_format": "MJPEG",
+      "interval_minutes": 2
+    }
+  ]
+}
