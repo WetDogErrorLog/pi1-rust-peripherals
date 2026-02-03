@@ -1,9 +1,0 @@
-[package]
-name = "timelapse_capture_and_send"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
-nexigo_lib = { path = "../nexigo_lib" }
-image_handling = { path = "../image_handling" }
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
