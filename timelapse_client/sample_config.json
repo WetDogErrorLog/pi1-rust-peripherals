@@ -1,5 +1,5 @@
 {
-  "service_addr": "192.168.4.22:3000",
+  "service_addr": "192.168.4.22:6260",
   "loops": [
     {
       "device_path": "/dev/logitech_webcam",
