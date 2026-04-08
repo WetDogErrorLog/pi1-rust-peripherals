@@ -1,5 +1,5 @@
-use image::{RgbImage};
-use std::{fmt, fs};
+use image::RgbImage;
+use std::{fmt, fs, io::Write};
 use serde::{Serialize, Deserialize};
 use reqwest::blocking::Client;
 use chrono::Local;
@@ -32,8 +32,13 @@ pub struct TimelapseLoopConfig {
     pub project_folder: String,
     pub image_format: ImageFormat,
     pub interval_minutes: u32,
-    // pub camera_path
-    // pub camera_method???
+    /// Frames to discard before capture so auto-exposure can settle. Defaults to 20 (~4s at 5fps).
+    #[serde(default = "default_warmup_frames")]
+    pub warmup_frames: u32,
+    /// Optional V4L2 control overrides. If omitted, the camera runs fully on auto.
+    /// See nexigo_lib::CameraControls for field docs.
+    #[serde(default)]
+    pub controls: Option<nexigo_lib::CameraControls>,
 }
 
 
@@ -86,30 +91,70 @@ pub fn send_image(
         .expect("Failed to upload image to server");
 }
 
+fn default_warmup_frames() -> u32 { 20 }
+
 pub async fn camera_timelapse_loop(
     service_addr: String,
     loop_config: TimelapseLoopConfig,
 ) {
-    let camera = nexigo_lib::Camera::new(
-        loop_config.width,
-        loop_config.height,
-    );
+    let camera = nexigo_lib::Camera {
+        width: loop_config.width,
+        height: loop_config.height,
+        warmup_frames: loop_config.warmup_frames,
+    };
+    let controls = loop_config.controls.as_ref();
+
     let mut interval = time::interval(Duration::from_secs((60 * loop_config.interval_minutes).into()));
     loop {
         interval.tick().await;
-        let yuyv_result = camera.take_picture(loop_config.device_path.clone());
-        let yuyv_shot = yuyv_result.expect("Failed to take picture");
-        println!("Hello, world! We have a picture");
+
+        let (image_bytes, snapshots) = camera
+            .take_picture(loop_config.device_path.clone(), controls)
+            .expect("Failed to take picture");
+
+        println!("Picture captured for '{}'", loop_config.file_name_root);
+
+        log_control_snapshot(&loop_config.project_folder, &snapshots);
+
         send_image(
             service_addr.clone(),
-            yuyv_shot,
+            image_bytes,
             loop_config.clone(),
         );
     }
-
 }
 
-// Convert YUVU to RGB. 
+/// Appends a row per control to `{project_folder}/controls_log.csv`.
+/// Writes the CSV header the first time the file is created.
+fn log_control_snapshot(project_folder: &str, snapshots: &[nexigo_lib::ControlSnapshot]) {
+    let log_path = format!("{}/controls_log.csv", project_folder);
+    fs::create_dir_all(project_folder).expect("failed to create project_folder");
+    let write_header = !std::path::Path::new(&log_path).exists();
+
+    let mut file = fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&log_path)
+        .expect("failed to open controls_log.csv");
+
+    if write_header {
+        writeln!(file, "timestamp,name,id,value").expect("failed to write CSV header");
+    }
+
+    let timestamp = Local::now().format("%Y-%m-%d_%H-%M").to_string();
+    for snap in snapshots {
+        let value_str = match &snap.value {
+            v4l::control::Value::Integer(n) => n.to_string(),
+            v4l::control::Value::Boolean(b) => b.to_string(),
+            v4l::control::Value::String(s)  => s.clone(),
+            other                           => format!("{:?}", other),
+        };
+        writeln!(file, "{},{},{},{}", timestamp, snap.name, snap.id, value_str)
+            .expect("failed to write CSV row");
+    }
+}
+
+// Convert YUVU to RGB.
 pub fn yuyv_to_rgb(height: u32, width: u32, yuyv_data: &[u8]) -> Result<RgbImage, ImageUnpackError> {
     let expected_size = (height * width * 2) as usize;
     if yuyv_data.len() != expected_size {
@@ -119,7 +164,7 @@ pub fn yuyv_to_rgb(height: u32, width: u32, yuyv_data: &[u8]) -> Result<RgbImage
         });
     }
     let mut rgb_data = Vec::with_capacity(((width*height*3)) as usize);
-    
+
     for chunk in yuyv_data.chunks_exact(4) {
         let y1 = chunk[0] as f32;
         let u  = chunk[1] as f32 - 128.0;
@@ -172,4 +217,3 @@ pub fn handle_image_post(packet: CameraPacket, dest_dir: &str) -> std::io::Resul
     result.expect("failed to save the rgb image for {file_root}");
     Ok(())
 }
-
